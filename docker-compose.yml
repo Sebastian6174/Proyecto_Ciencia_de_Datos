@@ -1,0 +1,19 @@
+services:
+  postgres:
+    image: postgres:12
+    container_name: ciencia_datos
+    environment:
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: pgadmin4CD
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: 12345
+    ports:
+      - "8080:80"
+    depends_on:
+      - postgres
