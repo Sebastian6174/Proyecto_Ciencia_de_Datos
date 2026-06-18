@@ -6,7 +6,15 @@ def to_date_key(dt_series):
     return dt_conv.apply(lambda x: int(x.strftime("%Y%m%d")) if pd.notna(x) else -1)
 
 
-def build_fact_servicios(dfs, get_urgency_key):
+def build_fact_servicios(
+    dfs,
+    get_urgency_key,
+    dim_ciudad,
+    dim_cliente,
+    dim_sede,
+    dim_mensajero,
+    dim_servicio,
+):
     print("Building Fact_Servicios...")
     estados = dfs["mensajeria_estadosservicio"].copy()
     estados["servicio_id"] = pd.to_numeric(estados["servicio_id"], errors="coerce")
@@ -60,7 +68,13 @@ def build_fact_servicios(dfs, get_urgency_key):
         suffixes=("", "_user")
     )
 
-    serv["Sede_Key"] = serv["sede_id"].fillna(-1).astype(int)
+    ciudad_key_map = dim_ciudad.set_index("Ciudad_Source_Id")["Ciudad_Key"]
+    cliente_key_map = dim_cliente.set_index("Cliente_Source_Id")["Cliente_Key"]
+    sede_key_map = dim_sede.set_index("Sede_Source_Id")["Sede_Key"]
+    mensajero_key_map = dim_mensajero.dropna(subset=["Mensajero_Source_Id"]).set_index("Mensajero_Source_Id")["Mensajero_Key"]
+    servicio_key_map = dim_servicio.set_index("Servicio_Source_Id")["Servicio_Key"]
+
+    serv["Sede_Key"] = serv["sede_id"].map(sede_key_map).fillna(-1).astype(int)
     serv["Fecha_Solicitud_Key"] = to_date_key(serv["fecha_solicitud"])
     serv["Fecha_Asignacion_Key"] = to_date_key(serv["ts_asignado"].dt.date)
     serv["Fecha_Cierre_Key"] = to_date_key(cierre_or_entrega.dt.date)
@@ -69,13 +83,16 @@ def build_fact_servicios(dfs, get_urgency_key):
     serv["Hora_Asignacion_Key"] = serv["ts_asignado"].dt.hour.fillna(-1).astype(int)
     serv["Hora_Cierre_Key"] = cierre_or_entrega.dt.hour.fillna(-1).astype(int)
 
-    serv["Mensajero_Key"] = pd.to_numeric(serv["mensajero_id"], errors="coerce").fillna(-1).astype(int)
-    serv["Cliente_Key"] = pd.to_numeric(serv["cliente_id"], errors="coerce").fillna(-1).astype(int)
-    serv["Ciudad_Origen_Key"] = pd.to_numeric(serv["ciudad_origen_id"], errors="coerce").fillna(-1).astype(int)
-    serv["Ciudad_Destino_Key"] = pd.to_numeric(serv["ciudad_destino_id"], errors="coerce").fillna(-1).astype(int)
+    for col in ["mensajero_id", "cliente_id", "ciudad_origen_id", "ciudad_destino_id", "id"]:
+        serv[col] = pd.to_numeric(serv[col], errors="coerce")
+
+    serv["Mensajero_Key"] = serv["mensajero_id"].map(mensajero_key_map).fillna(-1).astype(int)
+    serv["Cliente_Key"] = serv["cliente_id"].map(cliente_key_map).fillna(-1).astype(int)
+    serv["Ciudad_Origen_Key"] = serv["ciudad_origen_id"].map(ciudad_key_map).fillna(-1).astype(int)
+    serv["Ciudad_Destino_Key"] = serv["ciudad_destino_id"].map(ciudad_key_map).fillna(-1).astype(int)
 
     serv["Tipo_Urgencia_Key"] = serv["prioridad"].apply(get_urgency_key)
-    serv["Servicio_Key"] = serv["id"]
+    serv["Servicio_Key"] = serv["id"].map(servicio_key_map).fillna(-1).astype(int)
     serv["Cantidad_Servicios"] = 1
 
     return serv[[

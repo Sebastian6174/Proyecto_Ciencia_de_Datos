@@ -1,7 +1,7 @@
 import pandas as pd
 
 
-def build_fact_novedades(dfs, dim_tipo_novedad):
+def build_fact_novedades(dfs, dim_tipo_novedad, dim_mensajero, dim_servicio):
     print("Building Fact_Novedades...")
     nov_serv = dfs["mensajeria_novedadesservicio"].copy()
     nov_tipo = dfs["mensajeria_tiponovedad"].copy()
@@ -30,9 +30,15 @@ def build_fact_novedades(dfs, dim_tipo_novedad):
     nov_merged_key["Fecha_Key"] = pd.to_datetime(nov_merged_key["fecha_novedad"], errors="coerce").apply(
         lambda x: int(x.strftime("%Y%m%d")) if pd.notna(x) else -1
     )
-    nov_merged_key["Mensajero_Key"] = pd.to_numeric(nov_merged_key["mensajero_id"], errors="coerce").fillna(-1).astype(int)
+
+    nov_merged_key["mensajero_id"] = pd.to_numeric(nov_merged_key["mensajero_id"], errors="coerce")
+    nov_merged_key["servicio_id"] = pd.to_numeric(nov_merged_key["servicio_id"], errors="coerce")
+    mensajero_key_map = dim_mensajero.dropna(subset=["Mensajero_Source_Id"]).set_index("Mensajero_Source_Id")["Mensajero_Key"]
+    servicio_key_map = dim_servicio.set_index("Servicio_Source_Id")["Servicio_Key"]
+
+    nov_merged_key["Mensajero_Key"] = nov_merged_key["mensajero_id"].map(mensajero_key_map).fillna(-1).astype(int)
     nov_merged_key["Tipo_Novedad_Key"] = pd.to_numeric(nov_merged_key["Tipo_Novedad_Key"], errors="coerce").fillna(0).astype(int)
-    nov_merged_key["Servicio_Key"] = pd.to_numeric(nov_merged_key["servicio_id"], errors="coerce").fillna(-1).astype(int)
+    nov_merged_key["Servicio_Key"] = nov_merged_key["servicio_id"].map(servicio_key_map).fillna(-1).astype(int)
     nov_merged_key["Cantidad_Novedades"] = 1
 
     return nov_merged_key[[

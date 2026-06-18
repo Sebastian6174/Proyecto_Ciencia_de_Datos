@@ -30,8 +30,16 @@ def transform_all(dfs : Dict[str, pd.DataFrame]) -> Dict[str, pd.DataFrame]:
     dim_hora = build_dim_hora()
     dim_fecha = build_dim_fecha(dfs)
 
-    fact_servicios = build_fact_servicios(dfs, get_urgency_key)
-    fact_novedades = build_fact_novedades(dfs, dim_tipo_novedad)
+    fact_servicios = build_fact_servicios(
+        dfs,
+        get_urgency_key,
+        dim_ciudad,
+        dim_cliente,
+        dim_sede,
+        dim_mensajero,
+        dim_servicio,
+    )
+    fact_novedades = build_fact_novedades(dfs, dim_tipo_novedad, dim_mensajero, dim_servicio)
 
     return {
         "dim_ciudad": dim_ciudad,

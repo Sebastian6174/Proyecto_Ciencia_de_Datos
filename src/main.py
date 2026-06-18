@@ -1,11 +1,8 @@
-import os
-import sys
 import time
 
 from transform.transform import transform_all
 from load.load import load_tables
 from extract.extract import extract_data_frames
-from config import Config
 
 def run_etl():
     """
@@ -16,12 +13,10 @@ def run_etl():
     print("==================================================")
     print("Starting Fast and Safe ETL Pipeline")
     print("==================================================")
-    
-    target_tables = Config.target_tables
-    
+        
     # 1. Extract
     print("\n--- PHASE 1: EXTRACTION ---")
-    raw_dfs = extract_data_frames(target_tables)
+    raw_dfs = extract_data_frames()
     
     # 2. Transform
     print("\n--- PHASE 2: TRANSFORMATION ---")

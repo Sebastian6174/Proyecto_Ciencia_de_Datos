@@ -8,11 +8,11 @@ def build_dim_mensajero(dfs):
     servicio = dfs["mensajeria_servicio"].copy()
     vehiculo = dfs["mensajeria_tipovehiculo"].copy()
 
-    mensajero["id"] = pd.to_numeric(mensajero["id"])
-    mensajero["user_id"] = pd.to_numeric(mensajero["user_id"])
-    user["id"] = pd.to_numeric(user["id"])
+    mensajero["id"] = pd.to_numeric(mensajero["id"], errors="coerce")
+    mensajero["user_id"] = pd.to_numeric(mensajero["user_id"], errors="coerce")
+    user["id"] = pd.to_numeric(user["id"], errors="coerce")
     servicio["mensajero_id"] = pd.to_numeric(servicio["mensajero_id"], errors="coerce")
-    vehiculo["id"] = pd.to_numeric(vehiculo["id"])
+    vehiculo["id"] = pd.to_numeric(vehiculo["id"], errors="coerce")
 
     m_user = pd.merge(mensajero, user, left_on="user_id", right_on="id", how="left")
     m_user["Nombre_Completo"] = (
@@ -41,12 +41,16 @@ def build_dim_mensajero(dfs):
     m_user["Tipo_Vehiculo"] = m_user["id_x"].map(mensajero_veh_map).fillna("Moto")
 
     dim_mensajero = m_user.rename(columns={
-        "id_x": "Mensajero_Key",
+        "id_x": "Mensajero_Source_Id",
         "user_id": "ID_Identificacion"
-    })[["Mensajero_Key", "ID_Identificacion", "Nombre_Completo", "Tipo_Vehiculo"]]
+    })[["Mensajero_Source_Id", "ID_Identificacion", "Nombre_Completo", "Tipo_Vehiculo"]]
+
+    dim_mensajero = dim_mensajero.drop_duplicates(subset=["Mensajero_Source_Id"]).reset_index(drop=True)
+    dim_mensajero.insert(0, "Mensajero_Key", range(1, len(dim_mensajero) + 1))
 
     default_mensajero = pd.DataFrame([{
         "Mensajero_Key": -1,
+        "Mensajero_Source_Id": pd.NA,
         "ID_Identificacion": 0,
         "Nombre_Completo": "No Asignado",
         "Tipo_Vehiculo": "No Especificado"
